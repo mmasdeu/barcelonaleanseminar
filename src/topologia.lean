@@ -76,6 +76,13 @@ begin
   exact inter _ _ hU hV,
 end
 
+lemma finite_intersection_is_open {X : Type} [topological_space X] (I : set (set X)) (h : finite I) 
+(hB : ∀ B ∈ I, is_open B) : is_open (⋂₀ I) :=
+begin
+  -- No som capaços d'assignar una cardinalitat a I i fer-la servir per inducció
+  sorry,
+end
+
 /- ## Exercise 0 [short]:
 One of the axioms of a topological space we have here is unnecessary, it follows
 from the others. If we remove it we'll have less work to do each time we want to
@@ -128,9 +135,9 @@ lemma generated_open_is_coarsest' {X : Type} (g : set (set X)) [topological_spac
 (h : ∀ U ∈ g,  is_open U) : ∀ U : set X, generated_open X g U → is_open U :=
 begin
   intros U hU,
-  induction hU with a b c d e V W hV1 hW1 hV2 hW2,
+  induction hU, --with a b c d e V W hV1 hW1 hV2 hW2,
   { exact univ_mem },
-  { apply h, assumption },
+  { apply h, assumption},
   { apply union; assumption },
   { apply inter; assumption },
 end
@@ -160,7 +167,106 @@ topological_space.generate_from {U | ∃ (Ux : set X) (Uy : set Y)
   (hx : is_open Ux) (hy : is_open Uy), U = set.prod Ux Uy}
 
 
+lemma is_open_prod_fi (X Y : Type) [topological_space X] [topological_space Y]
+  {s : set (X × Y)} :
+(∀a b, (a, b) ∈ s → ∃u v, is_open u ∧ is_open v ∧
+                                  a ∈ u ∧ b ∈ v ∧ set.prod u v ⊆ s) → is_open s:= 
+  begin
+    intro h,
+    let W:= {w | ∃ u v, w= set.prod u v ∧ is_open u ∧ is_open v ∧ w ⊆ s},
+    have H: ⋃₀ W=s,
+    {
+      ext1,
+      split,
+      {
+        intro hx,
+        rcases hx with ⟨ w , ⟨ hw, hx ⟩ ⟩,
+        rcases hw with ⟨ h1 ,⟨ h2, ⟨u,⟨hv,⟨v,huv⟩⟩⟩⟩⟩,
+        tauto,
+      },
+      {
+        intro hX,
+        cases x with a b,
+        specialize h a b hX,
+        rcases h with ⟨u,⟨v,⟨hu,⟨hv,⟨hau, hav⟩⟩⟩⟩⟩,
+        have hW : set.prod u v ∈ W,
+        {
+          simp only [mem_set_of_eq],
+          tauto,
+        },
+        have hab : (a,b)∈set.prod u v,
+        {
+          simp only [prod_mk_mem_set_prod_eq],
+          tauto,
+        },
+        simp only [exists_prop, mem_set_of_eq],
+        tauto,
+      },
+    },
+    {
+      rw ← H,
+      apply union W,
+      intros B hB,
+      rcases hB with ⟨pX,⟨pY,⟨hProd,⟨pXopen,pYopen⟩⟩⟩⟩,
+      apply generated_open.generating,
+      simp only [exists_prop, mem_set_of_eq, exists_and_distrib_left],
+      tauto,
+    },
+  end
+
 -- the proof of this is bit long so I've left it out for the purpose of this file!
+/-
+lemma is_open_prod_fi (X Y : Type) [topological_space X] [topological_space Y]
+  {s : set (X × Y)} :
+(∀a b, (a, b) ∈ s → ∃u v, is_open u ∧ is_open v ∧
+                                  a ∈ u ∧ b ∈ v ∧ set.prod u v ⊆ s) → is_open s:= 
+  begin
+      intro h,
+      fconstructor,
+      let sX := {a | ∃ b, (a,b)∈ s},
+      let sY := {b | ∃ a, (a,b)∈ s},
+      simp at *,
+      use sX,
+      split,
+      {
+        sorry,
+      },
+      {
+        use sY,
+        split,
+        {
+          sorry,
+        },
+        {
+          ext1,
+          split,
+          {
+            intro hx,
+            cases x with a b,
+            have H : a ∈ sX,
+            {
+              use b,
+              exact hx,
+            },
+            have H : b ∈ sY,
+            {
+              use a,
+              exact hx,
+            },
+            finish,
+          },
+          {intro hx,
+          cases x with a b,
+          have H : a ∈ sX,
+          {
+              hint,
+          },
+          },
+        },
+      },
+      
+  end
+-/
 lemma is_open_prod_iff (X Y : Type) [topological_space X] [topological_space Y]
   {s : set (X × Y)} :
 is_open s ↔ (∀a b, (a, b) ∈ s → ∃u v, is_open u ∧ is_open v ∧
@@ -252,8 +358,7 @@ is_open s ↔ (∀a b, (a, b) ∈ s → ∃u v, is_open u ∧ is_open v ∧
       }
     },
     {
-      intro h,
-      sorry
+      exact is_open_prod_fi X Y,
     },
   end
 
