@@ -40,8 +40,8 @@ begin
   tauto,
 end
 
-instance complete_linear_order_ereal : complete_linear_order ereal :=
-{ ..ereal.complete_lattice, ..ereal.linear_order }
+--instance complete_linear_order_ereal : complete_linear_order ereal :=
+--{ ..ereal.complete_lattice, ..ereal.linear_order }
 
 lemma ereal.le_Sup {α : set ereal} {x : ereal} (h : x ∈ α) : x ≤ Sup α :=
   @_root_.le_Sup ereal _ _ _ h
