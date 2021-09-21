@@ -175,11 +175,11 @@ end }
 
 end T2_5_space
 
-def is_regular := ∀ (x : X) (F : set X) (hF : is_closed F) (hxF: x ∉ F),
+def topology_is_regular := ∀ (x : X) (F : set X) (hF : is_closed F) (hxF: x ∉ F),
   ∃ (U V : set X) (hU : is_open U) (hV : is_open V) (hUV : U ∩ V = ∅), (x ∈ U) ∧ (F ⊆ V)
 
 class T3_space extends frechet_space X : Prop :=
-(regular : is_regular X)
+(regular : topology_is_regular X)
 
 namespace T3_space
 open frechet_space
@@ -222,7 +222,7 @@ begin
   exact ⟨A, V, hA, hV, t, hh2.1, hh.2⟩,
 end }
 
-lemma T0_and_regular_is_T3 [kolmogorov_space X] (h: is_regular X) :
+lemma T0_and_regular_is_T3 [kolmogorov_space X] (h: topology_is_regular X) :
   T3_space X :=
 { 
   t1 := 
@@ -249,7 +249,7 @@ lemma T0_and_regular_is_T3 [kolmogorov_space X] (h: is_regular X) :
   regular := h,
 }
 
-lemma T0_and_regular_if_only_if_T3 : (kolmogorov_space X) ∧ (is_regular X) ↔ T3_space X :=
+lemma T0_and_regular_if_only_if_T3 : (kolmogorov_space X) ∧ (topology_is_regular X) ↔ T3_space X :=
 begin
   split; intro h,
     exact @T0_and_regular_is_T3 X _inst_1 h.1 h.2,

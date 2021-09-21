@@ -1,8 +1,8 @@
 [package]
 name = "barcelonaleanseminar"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.31.0"
+lean_version = "leanprover-community/lean:3.33.0"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "3b7e7bd699ae2723ec5ff8e63d9a702ce7ce486d"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "f536b4f057a51e4e6248c35ffce093c0351e5efd"}

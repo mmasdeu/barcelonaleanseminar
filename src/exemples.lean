@@ -121,7 +121,7 @@ end
 lemma left_ray_eq_Iio (x : ℝ) : left_ray (x : ereal) = Iio x :=
 begin
   unfold left_ray,
-  have xnetop : (x : ereal) ≠ ⊤, by trivial,
+  have xnetop : (x : ereal) ≠ ⊤ := dec_trivial,
   have xnebot : (x : ereal) ≠ ⊥ := dec_trivial,
   simp [xnetop, xnebot, Iio_def],
 end
@@ -130,14 +130,11 @@ end
 lemma left_ray_mem (x : ℝ) (y : ereal) : x ∈ left_ray y ↔ (x : ereal) < y :=
 begin
   by_cases ht : y = ⊤,
-  {
-    simp [ht],
-    exact dec_trivial,
-  },
+  { simp [ht] },
   by_cases hb : y = ⊥,
   { simp [hb] },
-  obtain ⟨z, hz⟩ := lift_to_real hb ht,
-  subst hz,
+  let z := y.to_real,
+  rw ←coe_to_real ht hb,
   simp,
 end
 
@@ -162,10 +159,9 @@ begin
       simp at h,
       exact empty_ne_univ h,
     },
-    obtain ⟨z, hz⟩ := lift_to_real ht hc,
+    let z := b.to_real,
+    rw ←coe_to_real hc ht at *,
     simp [ht] at h,
-    subst hz,
-    simp at h,
     specialize h (z+1),
     linarith [h],
   },
@@ -184,10 +180,11 @@ begin
     by_cases ht : b = ⊤,
     { simpa [ht] using h },
     { simp [ht] at h,
-      obtain ⟨z, hz⟩ := lift_to_real hc ht,
-      subst hz,
-      simp at h,
-      specialize h (z-1),
+      --obtain ⟨z, hz⟩ := ereal.to_real' hc ht,
+      have hz := (coe_to_real ht hc),
+      rw ←hz at h,
+      simp only [ereal.coe_le_coe_iff] at h,
+      specialize h (b.to_real-1),
       linarith [h] },
   },
   exact λ h, by simp [h],
@@ -205,9 +202,10 @@ begin
   by_cases hb2 : b = ⊤,
   { simp [hb2] },
   { simp [left_ray_def],
-    obtain ⟨r, hr⟩ := lift_to_real ha1 ha2,
-    obtain ⟨s, hs⟩ := lift_to_real hb1 hb2,
-    subst hr, subst hs,
+    let r := a.to_real,
+    let s := b.to_real,
+    rw ←coe_to_real ha2 ha1 at *,
+    rw ←coe_to_real hb2 hb1 at *,
     simp,
     exact forall_lt_iff_le },
 end
@@ -231,12 +229,14 @@ begin
   }
 end
 
-lemma union_of_intervals {α : set ℝ} (hne : ∃ a : ℝ, a ∈ α) (h : ∃ (C : ℝ), ∀ a ∈ α, a ≤ C) :
+lemma union_of_intervals {α : set ℝ} (hne : α.nonempty) (hbd : bdd_above α) :
   (⋃ a ∈ α, Iio a) = Iio (Sup α) :=
 begin
   simp only [←Iio_def],
   ext,
-  simp [lt_Sup α hne h],
+  simp only [exists_prop, mem_Union, mem_set_of_eq],
+  exact ⟨λ ⟨y,⟨hy1, hy2⟩⟩, lt_cSup_of_lt hbd hy1 hy2,
+  λ h, bex_def.mp (exists_lt_of_lt_cSup hne h)⟩
 end
 
 lemma bUnion_left_ray {α : set ereal} :
@@ -245,14 +245,14 @@ begin
   apply eq_of_subset_of_subset,
   {
     apply bUnion_subset,
-    exact λ _ hx, by simp [ereal.le_Sup hx],
+    exact λ _ hx, by simp [le_Sup hx],
   },
   {
     intros x hx,
     rw mem_bUnion_iff,
     have hx' : (x : ereal) < Sup α, by simpa using hx,
-    obtain ⟨y, ⟨hy1, hy2⟩⟩ := ereal.lt_Sup hx',
-    exact ⟨y, by simp [hy1, hy2]⟩,
+    obtain ⟨y, hy⟩ := lt_Sup_iff.1 hx',
+    exact ⟨y, by simp [hy]⟩,
   }
 end
 
@@ -401,21 +401,19 @@ begin
 end
 
 
+lemma aux_in_interval (x : ℝ) : x / (1 + abs x) ∈ Ioo (-1 : ℝ) 1 :=
+begin
+  have h1: 0 < 1 + abs x := by linarith [abs_nonneg x],
+  split;
+  { 
+    simp [lt_div_iff h1, div_lt_iff h1],
+    linarith [abs_add_nonneg x, le_abs_self x],
+  }
+end
+
 example : (Ioo (- 1: ℝ) 1) ≅ ℝ :=
 { to_fun := (λ x, ↑x / (1- abs(↑x))),
-  inv_fun := 
-  begin
-    intro x,
-    use x/(1+abs x),
-    have h1: 0 < 1 + abs x := by linarith [abs_nonneg x],
-    have h2: 0 ≤ abs x + x := abs_add_nonneg x,
-    have h3: x ≤ abs x := le_abs_self x,
-    split;
-    { 
-      simp [lt_div_iff h1, div_lt_iff h1],
-      linarith,
-    },
-  end,
+  inv_fun := λ x, ⟨x / (1 + abs x), aux_in_interval x⟩,
   left_inv := 
   begin
     rintro ⟨x, hx⟩,
@@ -460,7 +458,46 @@ example : (Ioo (- 1: ℝ) 1) ≅ ℝ :=
       field_simp,
     },
   end,
-  right_inv := sorry,
+  right_inv :=
+  begin
+    intro x,
+    simp,
+    by_cases 0 ≤ x,
+    {
+      rw abs_eq_self.mpr h,
+      have : 0 < 1+x,
+      {
+        calc 0 < 1 : zero_lt_one
+        ... ≤ 1 + x : le_add_of_nonneg_right h
+      },
+      have h' : 0 ≤ x / (1+x),
+      {
+        have h'' : 0 ≤ 1 + x :=le_of_lt this,
+        rw div_nonneg_iff,
+        left,
+        split; assumption,
+      },
+      rw abs_eq_self.mpr h',
+      have : 1+x ≠ 0 := ne_of_gt this,
+      field_simp,
+    },
+    {
+      by_cases hz : x = 0, by simp [hz],
+      have hx : x < 0 := not_le.mp h,
+      rw abs_eq_neg_self.mpr (le_of_lt hx),
+      ring_nf,
+      have : 0 < 1 - x, by linarith,
+      have h' : x / (1-x) < 0,
+      {
+        rw div_neg_iff,
+        right,
+        split; assumption,
+      },
+      rw abs_eq_neg_self.mpr (le_of_lt h'),
+      have : 1-x ≠ 0 := ne_of_gt this,
+      field_simp,
+    }
+  end,
   continuous_to_fun := sorry,
   continuous_inv_fun := sorry }
 
@@ -475,7 +512,7 @@ end
 instance open_square: topological_space unit_square  := 
   top_induced unit_square (ℝ × ℝ) (λ x, ↑x)
 
-/-- The Möbius strip, defined as a qutient in [0,1) × [0,1) -/
+/-- The Möbius strip, defined as a quotient of [0,1) × [0,1) -/
 instance Moebius_quot: topological_space (((Icc (0: ℝ) 1): Type) × (Ico (0: ℝ) 1)) :=
 begin
   apply top_quotient unit_square (( (Icc (0:ℝ) 1) :  Type) × (Ico (0:ℝ) 1)) _,

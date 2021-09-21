@@ -115,7 +115,6 @@ begin
     use {y | dist x y < 1},
     use x, use 1,
     simp [dist_eq_zero_iff],
-    linarith,
   },
   {
     intros U V hU hV,

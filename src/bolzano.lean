@@ -1,4 +1,5 @@
 import topology.metric_space.basic
+import .for_mathlib
 
 open set
 
@@ -12,27 +13,40 @@ begin
     cases le_or_lt (Inf I + ε / 2) x,
     { exact h },
     { cases le_or_lt (Inf I - ε / 2) x,
-      { exfalso,
-        have hxB : x ∈ metric.ball (Inf I) ε,
+      exfalso,
+      { have hxB : x ∈ metric.ball (Inf I) ε,
         { rw [metric.mem_ball',real.dist_eq],
           exact abs_lt.2 ⟨by linarith, by linarith⟩ },
         exact (H hxB) (hF.2 hx) },
-      { exfalso,      
-        linarith [(real.Inf_lt I h1 h2).2 ⟨x, hx, h_1⟩] } } },
-  linarith [(real.le_Inf I h1 h2).2 hIε],
+      { linarith [(real.is_glb_Inf I ⟨x, hx⟩ h2).1 hx] } } },
+  obtain ⟨a, ⟨ha1,ha2⟩⟩ := real.lt_Inf_add_pos h1 (half_pos hε),
+  linarith [hIε a ha1],
 end
 
 lemma bolz (a b : ℝ) (hab : a < b) (f: ℝ → ℝ) (hf : continuous_on f (Icc a b)) (ha : (f a)<0 ∧ (f b)>0) : ∃ c ∈ (Icc a b),f(c)=0 :=
 begin
   let I := {x ∈ Icc a b | f x ≥ 0},
   have h1 : ∃ (x : ℝ), x ∈ I, by exact ⟨b, right_mem_Icc.2 (le_of_lt hab), ge_iff_le.1 (le_of_lt ha.2)⟩,
-  have hb : Inf I ≤ b, by exact real.Inf_le {x ∈ Icc a b | f x ≥ 0} ⟨a, (λ y hy, (mem_Icc.1 hy.1).1)⟩ ⟨right_mem_Icc.2 (le_of_lt hab), ge_iff_le.2 (le_of_lt ha.2)⟩,
+  have hIb : bdd_below I := ⟨a, λ _ h, h.1.1⟩,
+  have hb : Inf I ≤ b,
+  {
+    rw real.Inf_le_iff,
+    { intros ε hε,
+      use b,
+      split,
+      { simp only [mem_sep_eq, ge_iff_le, right_mem_Icc],
+        split; linarith },
+      exact lt_add_of_pos_right b hε },
+    { exact ⟨a, (λ y hy, (mem_Icc.1 hy.1).1)⟩ },
+    { exact nonempty_def.mpr h1 }
+  },
   cases ha with ha1 ha2,
   have hIIci : I = f⁻¹'(Ici 0) ∩ (Icc a b), by exact subset.antisymm (λ x hx, ⟨hx.2, hx.1⟩) (λ x hx, ⟨hx.2, hx.1⟩),
   have hII : is_closed I,
   { obtain ⟨U, hU⟩ := continuous_on_iff_is_closed.1 hf (Ici 0) (is_closed_Ici) ,
     rw [hIIci, hU.2],
-    exact is_closed_inter hU.1 (is_closed_Icc) },
+    exact is_closed.inter hU.1 (is_closed_Icc),
+    },
   have himI : 0 ≤ f (Inf I),
   { obtain hx := Inf.closure I h1 ⟨a, (λ y hy, (mem_Icc.1 hy.1).1)⟩,
     rw (is_closed.closure_eq hII) at hx,
@@ -42,8 +56,13 @@ begin
     { intro hax,
       have htt : f (Inf I) <0, by rwa ← hax,
       linarith },
-    exact (ne.le_iff_lt h3).mp ((real.le_Inf {x ∈ Icc a b | f x ≥ 0} h1 ⟨a, (λ y hy, (mem_Icc.1 hy.1).1)⟩).2 (λ x hx, (mem_Icc.1 hx.1).1)) },
-  have hI :=  mem_Icc.mpr ⟨(real.le_Inf {x ∈ (Icc a b)| f x >= 0} h1 ⟨a, (λ y hy, (mem_Icc.1 hy.1).1)⟩).2 (λ y hy, (mem_Icc.1 hy.1).1), hb⟩,
+    apply (ne.le_iff_lt h3).mp,
+    have halb : lower_bounds I a,
+    { unfold lower_bounds,
+      simp only [and_imp, mem_sep_eq, ge_iff_le, mem_set_of_eq, mem_Icc],
+      exact λ t ht1 ht2 hh, ht1 },
+    exact (le_cInf_iff ⟨a, halb⟩ h1).2 halb },
+  have hI : Inf I ∈ Icc a b := mem_Icc.mpr ⟨le_of_lt ha, hb⟩,
   have hf : f (Inf {x ∈ Icc a b | f x ≥ 0}) = 0,
   { by_contradiction,
     cases (ne.symm h).lt_or_lt,
@@ -67,11 +86,12 @@ begin
       have r : 0 < f (Inf I - δ/2),
       { rw real.dist_eq at hhh,
         linarith[neg_lt_of_abs_lt hhh] },
-      have ttt: δ ≤ 0,
-      { linarith [real.Inf_le I ⟨a, (λ y hy, (mem_Icc.1 hy.1).1)⟩ ⟨t, ge_iff_le.1 (le_of_lt r)⟩] },
-      have m : 0 < 0,
-      { linarith },
-      exact nat.lt_asymm m m },
+      have HH : Inf I ≤ Inf I - δ / 2,
+      {
+        have hkey : Inf I - δ/2 ∈ I := ⟨t, ge_iff_le.1 (le_of_lt r)⟩,
+        apply (real.is_glb_Inf I ⟨Inf I - δ/2, hkey⟩ hIb).1 hkey,
+      },
+      linarith [HH] },
     { linarith[himI] } },
   exact ⟨Inf {x ∈ (Icc a b)| f x >= 0}, hI, hf⟩,
 end

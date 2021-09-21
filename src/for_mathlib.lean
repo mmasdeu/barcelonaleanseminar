@@ -1,8 +1,9 @@
-
+import data.real.basic
 import data.real.ereal
+import order.conditionally_complete_lattice
 
 open set
-
+open_locale classical
 noncomputable theory
 
 @[simp]
@@ -18,55 +19,47 @@ lemma sUnion_eq_of_pointwise {X : Type} {U : set X} {ℬ : set (set X)} :
 begin
   split,
   { rintros ⟨J, hJ1, rfl⟩ x ⟨t, ht1, ht2⟩,
-    exact ⟨t, hJ1 ht1, ht2, subset_sUnion_of_mem ht1⟩, },
+    exact ⟨t, hJ1 ht1, ht2, subset_sUnion_of_mem ht1⟩ },
   { intro h,
     refine ⟨{W ∈ ℬ | W ⊆ U}, sep_subset _ _, _⟩,
     apply eq_of_subset_of_subset,
     { intros x hx,
       obtain ⟨W, hWB, hXw, hwu⟩ := h x hx,
-      exact ⟨W, ⟨hWB, hwu⟩, hXw⟩, },
+      exact ⟨W, ⟨hWB, hwu⟩, hXw⟩ },
     { rintros x ⟨W, ⟨-, hWU⟩, hXw⟩,
-      exact hWU hXw, }, }
+      exact hWU hXw, } }
 end
 
-lemma lift_to_real {x : ereal} (h : x ≠ ⊥) (h' : x ≠ ⊤) :
-  ∃ (c : ℝ), (c : ereal) = x :=
+lemma ereal.eq_top_iff (x : ereal) : x = ⊤ ↔ ∀ (y : ℝ), (y : ereal) < x :=
 begin
-  cases x,
-  { tauto },
-  cases x,
-  { tauto },
-  use x,
-  tauto,
+  split,
+  { intro h,
+    subst h,
+    exact ereal.coe_lt_top },
+  { intro h,
+    by_contradiction hc,
+    by_cases hb : x = ⊥,
+    { subst hb,
+      simpa [not_lt_bot] using (h 0) },
+    let z := x.to_real,
+    have hz : (z : ereal) = x := ereal.coe_to_real hc hb,
+    simpa [hz] using (h z) }
 end
 
---instance complete_linear_order_ereal : complete_linear_order ereal :=
---{ ..ereal.complete_lattice, ..ereal.linear_order }
-
-lemma ereal.le_Sup {α : set ereal} {x : ereal} (h : x ∈ α) : x ≤ Sup α :=
-  @_root_.le_Sup ereal _ _ _ h
-
-lemma ereal.lt_Sup {α : set ereal} {x : ereal} (h : x < Sup α) : ∃ y ∈ α, x < y :=
-  (@_root_.lt_Sup_iff ereal _ α x).1 h
-
-lemma ereal_top (x : ereal) (h : ∀ (y : ℝ), (y : ereal) < x) : x = ⊤ :=
+lemma ereal.eq_bot_iff (x : ereal) : x = ⊥ ↔ ∀ (y : ℝ), x < (y : ereal) :=
 begin
-  by_contradiction hc,
-  by_cases hb : x = ⊥,
-  { subst hb,
-    simpa [not_lt_bot] using (h 0) },
-  obtain ⟨z, hz⟩ := lift_to_real hb hc,
-  simpa [hz] using (h z),
-end
-
-lemma ereal_bot (x : ereal) (h : ∀ (y : ℝ), x < (y : ereal)) : x = ⊥ :=
-begin
-  by_contradiction hc,
-  by_cases ht : x = ⊤,
-  { subst ht,
-    simpa [not_lt_bot] using (h 0) },
-  obtain ⟨z, hz⟩ := lift_to_real hc ht,
-  simpa [hz] using (h z),
+  split,
+  { intro h,
+    subst h,
+    exact ereal.bot_lt_coe },
+  { intro h,
+    by_contradiction hc,
+    by_cases ht : x = ⊤,
+    { subst ht,
+      simpa [not_lt_bot] using (h 0) },
+    let z := x.to_real,
+    have hz : (z : ereal) = x := (ereal.coe_to_real ht hc),
+    simpa [hz] using (h z) }
 end
 
 lemma inter_is_not_is_empty_intersection {X : Type} {x : X} {U V : set X}
